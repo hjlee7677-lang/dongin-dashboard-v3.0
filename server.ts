@@ -166,7 +166,8 @@ class DbManager {
         }
         return data;
       } catch (e: any) {
-        console.warn("Supabase getFolders failed, falling back to local file:", e.message || e);
+        console.warn("Supabase getFolders failed:", e.message || e);
+        throw new Error(e.message || "Supabase getFolders failed");
       }
     }
     return this.getLocalData().folders;
@@ -181,7 +182,8 @@ class DbManager {
         if (error) throw error;
         return data[0] || folder;
       } catch (e: any) {
-        console.warn("Supabase addFolder failed, falling back to local file:", e.message || e);
+        console.warn("Supabase addFolder failed:", e.message || e);
+        throw new Error(e.message || "Supabase addFolder failed");
       }
     }
     const local = this.getLocalData();
@@ -199,7 +201,8 @@ class DbManager {
         if (error) throw error;
         return data[0];
       } catch (e: any) {
-        console.warn("Supabase updateFolder failed, falling back to local file:", e.message || e);
+        console.warn("Supabase updateFolder failed:", e.message || e);
+        throw new Error(e.message || "Supabase updateFolder failed");
       }
     }
     const local = this.getLocalData();
@@ -224,7 +227,8 @@ class DbManager {
         if (error) throw error;
         return { success: true };
       } catch (e: any) {
-        console.warn("Supabase deleteFolder failed, falling back to local file:", e.message || e);
+        console.warn("Supabase deleteFolder failed:", e.message || e);
+        throw new Error(e.message || "Supabase deleteFolder failed");
       }
     }
     const local = this.getLocalData();
@@ -250,7 +254,8 @@ class DbManager {
         }
         return data;
       } catch (e: any) {
-        console.warn("Supabase getProjects failed, falling back to local file:", e.message || e);
+        console.warn("Supabase getProjects failed:", e.message || e);
+        throw new Error(e.message || "Supabase getProjects failed");
       }
     }
     return this.getLocalData().projects;
@@ -276,7 +281,8 @@ class DbManager {
           folder_id: responseData.folder_id === null ? "" : responseData.folder_id
         };
       } catch (e: any) {
-        console.warn("Supabase addProject failed, falling back to local file:", e.message || e);
+        console.warn("Supabase addProject failed:", e.message || e);
+        throw new Error(e.message || "Supabase addProject failed");
       }
     }
     const local = this.getLocalData();
@@ -307,7 +313,8 @@ class DbManager {
         }
         return responseData;
       } catch (e: any) {
-        console.warn("Supabase updateProject failed, falling back to local file:", e.message || e);
+        console.warn("Supabase updateProject failed:", e.message || e);
+        throw new Error(e.message || "Supabase updateProject failed");
       }
     }
     const local = this.getLocalData();
@@ -329,7 +336,8 @@ class DbManager {
         if (error) throw error;
         return { success: true };
       } catch (e: any) {
-        console.warn("Supabase deleteProject failed, falling back to local file:", e.message || e);
+        console.warn("Supabase deleteProject failed:", e.message || e);
+        throw new Error(e.message || "Supabase deleteProject failed");
       }
     }
     const local = this.getLocalData();
