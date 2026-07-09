@@ -94,6 +94,25 @@ class DbManager {
     this.ensureLocalFile();
   }
 
+  // Prevent database operations from hanging by timing out after 3000ms
+  private async runWithTimeout(promise: Promise<any>, timeoutMs = 3000): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      promise
+        .then((value) => {
+          clearTimeout(timer);
+          resolve(value);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  }
+
   public getStatus() {
     return {
       useSupabase: this.useSupabase,
@@ -133,11 +152,15 @@ class DbManager {
   async getFolders() {
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("folders").select("*").order("name");
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("folders").select("*").order("name")
+        );
         if (error) throw error;
         // Seed database if empty
         if (!data || data.length === 0) {
-          const { data: inserted, error: insertError } = await this.supabaseClient.from("folders").insert(defaultFolders).select();
+          const { data: inserted, error: insertError } = await this.runWithTimeout(
+            this.supabaseClient.from("folders").insert(defaultFolders).select()
+          );
           if (insertError) throw insertError;
           return inserted;
         }
@@ -152,7 +175,9 @@ class DbManager {
   async addFolder(folder: { id: string; name: string }) {
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("folders").insert([folder]).select();
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("folders").insert([folder]).select()
+        );
         if (error) throw error;
         return data[0] || folder;
       } catch (e: any) {
@@ -168,7 +193,9 @@ class DbManager {
   async updateFolder(id: string, name: string) {
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("folders").update({ name }).eq("id", id).select();
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("folders").update({ name }).eq("id", id).select()
+        );
         if (error) throw error;
         return data[0];
       } catch (e: any) {
@@ -188,8 +215,12 @@ class DbManager {
     if (this.useSupabase) {
       try {
         // Safe cascading in server code or DB rules
-        await this.supabaseClient.from("projects").update({ folder_id: "" }).eq("folder_id", id);
-        const { error } = await this.supabaseClient.from("folders").delete().eq("id", id);
+        await this.runWithTimeout(
+          this.supabaseClient.from("projects").update({ folder_id: null }).eq("folder_id", id)
+        );
+        const { error } = await this.runWithTimeout(
+          this.supabaseClient.from("folders").delete().eq("id", id)
+        );
         if (error) throw error;
         return { success: true };
       } catch (e: any) {
@@ -206,10 +237,14 @@ class DbManager {
   async getProjects() {
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("projects").select("*").order("created_at", { ascending: false });
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("projects").select("*").order("created_at", { ascending: false })
+        );
         if (error) throw error;
         if (!data || data.length === 0) {
-          const { data: inserted, error: insertError } = await this.supabaseClient.from("projects").insert(defaultProjects).select();
+          const { data: inserted, error: insertError } = await this.runWithTimeout(
+            this.supabaseClient.from("projects").insert(defaultProjects).select()
+          );
           if (insertError) throw insertError;
           return inserted;
         }
@@ -222,11 +257,24 @@ class DbManager {
   }
 
   async addProject(project: any) {
+    // Standardize empty string folder_id to null for DB foreign key integrity
+    const dbProject = {
+      ...project,
+      folder_id: project.folder_id === "" ? null : project.folder_id
+    };
+
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("projects").insert([project]).select();
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("projects").insert([dbProject]).select()
+        );
         if (error) throw error;
-        return data[0] || project;
+        // Keep the response structure consistent
+        const responseData = data[0] || dbProject;
+        return {
+          ...responseData,
+          folder_id: responseData.folder_id === null ? "" : responseData.folder_id
+        };
       } catch (e: any) {
         console.warn("Supabase addProject failed, falling back to local file:", e.message || e);
       }
@@ -238,11 +286,26 @@ class DbManager {
   }
 
   async updateProject(id: string, projectUpdates: any) {
+    // Standardize empty string folder_id to null for DB foreign key integrity
+    const dbUpdates = {
+      ...projectUpdates,
+      folder_id: projectUpdates.folder_id === "" ? null : projectUpdates.folder_id
+    };
+
     if (this.useSupabase) {
       try {
-        const { data, error } = await this.supabaseClient.from("projects").update(projectUpdates).eq("id", id).select();
+        const { data, error } = await this.runWithTimeout(
+          this.supabaseClient.from("projects").update(dbUpdates).eq("id", id).select()
+        );
         if (error) throw error;
-        return data[0];
+        const responseData = data[0];
+        if (responseData) {
+          return {
+            ...responseData,
+            folder_id: responseData.folder_id === null ? "" : responseData.folder_id
+          };
+        }
+        return responseData;
       } catch (e: any) {
         console.warn("Supabase updateProject failed, falling back to local file:", e.message || e);
       }
@@ -260,7 +323,9 @@ class DbManager {
   async deleteProject(id: string) {
     if (this.useSupabase) {
       try {
-        const { error } = await this.supabaseClient.from("projects").delete().eq("id", id);
+        const { error } = await this.runWithTimeout(
+          this.supabaseClient.from("projects").delete().eq("id", id)
+        );
         if (error) throw error;
         return { success: true };
       } catch (e: any) {

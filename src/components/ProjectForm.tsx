@@ -12,6 +12,7 @@ interface ProjectFormProps {
   editingProject: Project | null;
   onSave: (projectData: Omit<Project, "id" | "created_at"> & { id?: string }) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 export default function ProjectForm({
@@ -19,6 +20,7 @@ export default function ProjectForm({
   editingProject,
   onSave,
   onCancel,
+  isSaving = false,
 }: ProjectFormProps) {
   const isEditMode = !!editingProject;
 
@@ -206,17 +208,32 @@ export default function ProjectForm({
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 font-medium text-slate-600 text-sm transition-all cursor-pointer"
+              disabled={isSaving}
+              className={`px-6 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 font-medium text-slate-600 text-sm transition-all cursor-pointer ${
+                isSaving ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               id="btn-cancel-form"
             >
               취소
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl shadow-sm hover:shadow transition-all cursor-pointer"
+              disabled={isSaving}
+              className={`px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-2 ${
+                isSaving ? "opacity-75 cursor-not-allowed" : ""
+              }`}
               id="btn-submit-form"
             >
-              {isEditMode ? "프로젝트 수정" : "프로젝트 등록"}
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>저장 중...</span>
+                </>
+              ) : isEditMode ? (
+                "프로젝트 수정"
+              ) : (
+                "프로젝트 등록"
+              )}
             </button>
           </div>
         </form>

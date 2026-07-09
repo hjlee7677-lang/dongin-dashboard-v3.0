@@ -28,6 +28,7 @@ export default function App() {
   // UI states
   const [showGuide, setShowGuide] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch initial data
@@ -133,6 +134,8 @@ export default function App() {
     // Convert e.g., "2026.7.8." to "2026. 7. 8." with spaces for neat look
     const cleanDate = formattedDate.split(".").filter(Boolean).join(". ") + ".";
 
+    setIsSaving(true);
+
     if (projectData.id) {
       // Edit mode
       try {
@@ -152,9 +155,15 @@ export default function App() {
           setProjects((prev) => prev.map((p) => (p.id === projectData.id ? updated : p)));
           setView("dashboard");
           setEditingProject(null);
+        } else {
+          const errData = await res.json();
+          alert(`프로젝트 수정에 실패했습니다: ${errData.error || "알 수 없는 오류"}`);
         }
       } catch (e) {
         console.error("Failed to update project:", e);
+        alert("서버 통신 실패로 프로젝트 수정에 실패했습니다.");
+      } finally {
+        setIsSaving(false);
       }
     } else {
       // Add mode
@@ -179,9 +188,15 @@ export default function App() {
           const savedProj = await res.json();
           setProjects((prev) => [savedProj, ...prev]);
           setView("dashboard");
+        } else {
+          const errData = await res.json();
+          alert(`프로젝트 등록에 실패했습니다: ${errData.error || "알 수 없는 오류"}`);
         }
       } catch (e) {
         console.error("Failed to add project:", e);
+        alert("서버 통신 실패로 프로젝트 등록에 실패했습니다.");
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -413,6 +428,7 @@ export default function App() {
               folders={folders}
               editingProject={editingProject}
               onSave={handleSaveProject}
+              isSaving={isSaving}
               onCancel={() => {
                 setView("dashboard");
                 setEditingProject(null);
