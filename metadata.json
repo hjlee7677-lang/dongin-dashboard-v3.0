@@ -1,0 +1,6 @@
+{
+  "name": "동인고 업무 대시보드",
+  "description": "동인고등학교의 업무 자동화를 위한 프로젝트 대시보드입니다. 분류별 프로젝트 관리 및 간편한 등록 기능을 제공합니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
