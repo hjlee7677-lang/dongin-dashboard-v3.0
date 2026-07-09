@@ -274,107 +274,107 @@ class DbManager {
   }
 }
 
-async function startServer() {
-  const app = express();
-  app.use(express.json());
+const app = express();
+app.use(express.json());
 
-  const db = new DbManager();
+const db = new DbManager();
 
-  // API Routes
-  app.get("/api/status", (req, res) => {
-    res.json(db.getStatus());
-  });
+// API Routes
+app.get("/api/status", (req, res) => {
+  res.json(db.getStatus());
+});
 
-  app.get("/api/folders", async (req, res) => {
-    try {
-      const folders = await db.getFolders();
-      res.json(folders);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
+app.get("/api/folders", async (req, res) => {
+  try {
+    const folders = await db.getFolders();
+    res.json(folders);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/folders", async (req, res) => {
+  try {
+    const { id, name } = req.body;
+    if (!id || !name) {
+      return res.status(400).json({ error: "Missing folder parameters" });
     }
-  });
+    const newFolder = await db.addFolder({ id, name });
+    res.status(201).json(newFolder);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  app.post("/api/folders", async (req, res) => {
-    try {
-      const { id, name } = req.body;
-      if (!id || !name) {
-        return res.status(400).json({ error: "Missing folder parameters" });
-      }
-      const newFolder = await db.addFolder({ id, name });
-      res.status(201).json(newFolder);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
+app.put("/api/folders/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: "Missing name parameter" });
     }
-  });
+    const updated = await db.updateFolder(id, name);
+    res.json(updated);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  app.put("/api/folders/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { name } = req.body;
-      if (!name) {
-        return res.status(400).json({ error: "Missing name parameter" });
-      }
-      const updated = await db.updateFolder(id, name);
-      res.json(updated);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
+app.delete("/api/folders/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.deleteFolder(id);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/projects", async (req, res) => {
+  try {
+    const projects = await db.getProjects();
+    res.json(projects);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/projects", async (req, res) => {
+  try {
+    const project = req.body;
+    if (!project.id || !project.name || !project.url || !project.responsible) {
+      return res.status(400).json({ error: "Missing mandatory project parameters" });
     }
-  });
+    const newProject = await db.addProject(project);
+    res.status(201).json(newProject);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  app.delete("/api/folders/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = await db.deleteFolder(id);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
+app.put("/api/projects/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const updated = await db.updateProject(id, updates);
+    res.json(updated);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  app.get("/api/projects", async (req, res) => {
-    try {
-      const projects = await db.getProjects();
-      res.json(projects);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
+app.delete("/api/projects/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.deleteProject(id);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  app.post("/api/projects", async (req, res) => {
-    try {
-      const project = req.body;
-      if (!project.id || !project.name || !project.url || !project.responsible) {
-        return res.status(400).json({ error: "Missing mandatory project parameters" });
-      }
-      const newProject = await db.addProject(project);
-      res.status(201).json(newProject);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.put("/api/projects/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      const updated = await db.updateProject(id, updates);
-      res.json(updated);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.delete("/api/projects/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = await db.deleteProject(id);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  // Serve static UI / assets
+// Setup function for dev vs production
+async function setupApp() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -389,9 +389,14 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Dongin High School Work Automation Dashboard listening on http://localhost:${PORT}`);
-  });
+  // Only start listening in non-Vercel environments
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Dongin High School Work Automation Dashboard listening on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+setupApp();
+
+export default app;
